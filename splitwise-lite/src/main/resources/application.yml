@@ -15,7 +15,9 @@ spring:
     baseline-on-migrate: true
 
 server:
-  port: 8080
+  # PORT is injected by most PaaS platforms (Render, Railway, Heroku-style).
+  # Falls back to 8080 for local development.
+  port: ${PORT:8080}
   error:
     include-message: always
     include-stacktrace: never
@@ -47,12 +49,15 @@ spring:
 
 ---
 # Real PostgreSQL profile for staging/production-like runs.
+# In hosted environments (e.g. Render), the connection details are typically
+# injected as individual env vars (DB_HOST, DB_PORT, DB_NAME, DB_USERNAME,
+# DB_PASSWORD). Locally you can override DB_URL directly if you prefer.
 spring:
   config:
     activate:
       on-profile: postgres
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/splitwise}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:splitwise}?sslmode=${DB_SSLMODE:require}}
     username: ${DB_USERNAME:splitwise}
     password: ${DB_PASSWORD:splitwise}
   jpa:

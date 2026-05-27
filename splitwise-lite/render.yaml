@@ -1,0 +1,53 @@
+# Render Blueprint — provisions the web service AND a free Postgres
+# in one go. Use this with "New +" -> "Blueprint" in the Render dashboard.
+#
+# Note: Render expects render.yaml at the repository ROOT for monorepos.
+# Since this project lives under splitwise-lite/, you can either:
+#   (a) Copy this file to the repo root and adjust paths if needed, OR
+#   (b) Skip the Blueprint and create the service + database manually
+#       following the walkthrough in the README / chat instructions.
+
+services:
+  - type: web
+    name: splitwise-lite
+    runtime: docker
+    plan: free
+    region: singapore           # closest to Hyderabad; change if you prefer
+    rootDir: splitwise-lite
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: postgres
+      - key: JWT_SECRET
+        generateValue: true        # Render generates a strong random secret
+      - key: DB_HOST
+        fromDatabase:
+          name: splitwise-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: splitwise-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: splitwise-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: splitwise-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: splitwise-db
+          property: password
+      - key: DB_SSLMODE
+        value: require
+
+databases:
+  - name: splitwise-db
+    plan: free
+    databaseName: splitwise
+    user: splitwise
