@@ -30,6 +30,16 @@ app:
       ttl-minutes: 120
       issuer: splitwise-lite
 
+# Interactive API documentation. Visit /swagger-ui.html in a browser.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
 ---
 # Local development with embedded H2 in PostgreSQL compatibility mode.
 # Lets you run the app with zero infrastructure setup.

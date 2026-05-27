@@ -27,7 +27,12 @@ public class SecurityConfig {
             "/",
             "/auth/**",
             "/actuator/health",
-            "/error"
+            "/error",
+            // Swagger UI + OpenAPI spec — lets anyone browse and try the API
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs",
+            "/v3/api-docs/**"
     };
 
     @Bean
