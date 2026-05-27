@@ -7,6 +7,8 @@ import com.shashikiranreddy.splitwise.expense.domain.ExpenseShare;
 import com.shashikiranreddy.splitwise.expense.domain.ExpenseShareRepository;
 import com.shashikiranreddy.splitwise.group.domain.GroupMember;
 import com.shashikiranreddy.splitwise.group.domain.GroupMemberRepository;
+import com.shashikiranreddy.splitwise.settlement.domain.Settlement;
+import com.shashikiranreddy.splitwise.settlement.domain.SettlementRepository;
 import com.shashikiranreddy.splitwise.user.domain.User;
 import com.shashikiranreddy.splitwise.user.domain.UserRepository;
 import org.springframework.stereotype.Service;
@@ -45,15 +47,18 @@ public class BalanceService {
     private final GroupMemberRepository memberRepository;
     private final ExpenseRepository expenseRepository;
     private final ExpenseShareRepository shareRepository;
+    private final SettlementRepository settlementRepository;
     private final UserRepository userRepository;
 
     public BalanceService(GroupMemberRepository memberRepository,
                           ExpenseRepository expenseRepository,
                           ExpenseShareRepository shareRepository,
+                          SettlementRepository settlementRepository,
                           UserRepository userRepository) {
         this.memberRepository = memberRepository;
         this.expenseRepository = expenseRepository;
         this.shareRepository = shareRepository;
+        this.settlementRepository = settlementRepository;
         this.userRepository = userRepository;
     }
 
@@ -72,6 +77,11 @@ public class BalanceService {
 
         List<Expense> expenses = expenseRepository.findByGroupIdOrderByCreatedAtDesc(groupId);
         if (expenses.isEmpty()) {
+            // Still need to apply settlements (a group can have settlements without expenses).
+            for (Settlement s : settlementRepository.findByGroupId(groupId)) {
+                balances.merge(s.getFromUserId(), s.getAmount(), BigDecimal::add);
+                balances.merge(s.getToUserId(), s.getAmount().negate(), BigDecimal::add);
+            }
             return balances;
         }
 
@@ -84,6 +94,13 @@ public class BalanceService {
             for (ExpenseShare s : sharesByExpense.getOrDefault(e.getId(), List.of())) {
                 balances.merge(s.getUserId(), s.getShareAmount().negate(), BigDecimal::add);
             }
+        }
+
+        // Apply recorded settlements: a settlement from F to T moves money from
+        // F's debt-side back toward zero and from T's credit-side back toward zero.
+        for (Settlement s : settlementRepository.findByGroupId(groupId)) {
+            balances.merge(s.getFromUserId(), s.getAmount(), BigDecimal::add);
+            balances.merge(s.getToUserId(), s.getAmount().negate(), BigDecimal::add);
         }
         return balances;
     }
