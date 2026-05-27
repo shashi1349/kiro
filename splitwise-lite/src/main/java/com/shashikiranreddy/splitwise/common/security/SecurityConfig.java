@@ -13,13 +13,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Stateless security configuration.
  *
- * <p>Public surface: actuator health and the auth endpoints (register, login).
+ * <p>Public surface: the friendly root page, actuator health, and the auth endpoints.
  * Everything else requires a valid JWT validated by {@link JwtAuthenticationFilter}.
+ *
+ * <p>Authentication and authorization failures are rendered as RFC 7807
+ * ProblemDetail JSON via {@link JsonAuthenticationEntryPoint} and
+ * {@link JsonAccessDeniedHandler} — no Whitelabel HTML pages.
  */
 @Configuration
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
+            "/",
             "/auth/**",
             "/actuator/health",
             "/error"
@@ -27,11 +32,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+                                                   JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                   JsonAuthenticationEntryPoint authEntryPoint,
+                                                   JsonAccessDeniedHandler accessDeniedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
